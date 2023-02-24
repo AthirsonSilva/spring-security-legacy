@@ -1,23 +1,28 @@
 package com.spring.security.config;
 
+import com.spring.security.auth.ApplicationUserService;
+import com.spring.security.jwt.JwtTokenVerifier;
+import com.spring.security.jwt.JwtUsernameAndPasswordAuthenticationFilter;
+import com.spring.security.student.JwtConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import java.util.concurrent.TimeUnit;
+import javax.crypto.SecretKey;
 
-import static com.spring.security.config.ApplicationUserPermission.COURSE_WRITE;
 import static com.spring.security.config.ApplicationUserRole.*;
 
 @Configuration
@@ -26,9 +31,18 @@ import static com.spring.security.config.ApplicationUserRole.*;
 public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 	private final PasswordEncoder passwordEncoder;
 
+	private final ApplicationUserService applicationUserService;
+	private final JwtConfig jwtConfig;
+	private final SecretKey jwtSecretKey;
+	private final SecretKey secretKey;
+
 	@Autowired
-	public ApplicationSecurityConfig(PasswordEncoder passwordEncoder) {
+	public ApplicationSecurityConfig(PasswordEncoder passwordEncoder, ApplicationUserService applicationUserService, JwtConfig jwtConfig, SecretKey jwtSecretKey, SecretKey secretKey) {
 		this.passwordEncoder = passwordEncoder;
+		this.applicationUserService = applicationUserService;
+		this.jwtConfig = jwtConfig;
+		this.jwtSecretKey = jwtSecretKey;
+		this.secretKey = secretKey;
 	}
 
 	@Override
@@ -38,8 +52,8 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 				.builder()
 				.username("user")
 				.password(passwordEncoder.encode("password"))
-				.roles(STUDENT.name())
-				.authorities(STUDENT.getGrantedAuthorities())
+				.roles(USER.name())
+				.authorities(USER.getGrantedAuthorities())
 				.build();
 
 		UserDetails admin = User
@@ -65,40 +79,38 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 	protected void configure(HttpSecurity http) throws Exception {
 		http
 				.csrf().disable()
+				.sessionManagement()
+				.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+				.and()
+				.addFilter(new JwtUsernameAndPasswordAuthenticationFilter(authenticationManager(), jwtConfig, jwtSecretKey))
+				.addFilterAfter(new JwtTokenVerifier(jwtConfig, secretKey), JwtUsernameAndPasswordAuthenticationFilter.class)
 				.authorizeRequests()
-				.antMatchers("/", "index", "/css/*", "/js/*")
-					.permitAll()
-				.antMatchers("/api/v1/students/**")
-					.hasRole(STUDENT.name())
-				.antMatchers(HttpMethod.POST, "/api/v1/management/**")
-					.hasAuthority(COURSE_WRITE.getPermission())
-				.antMatchers(HttpMethod.PUT, "/api/v1/management/**")
-					.hasAuthority(COURSE_WRITE.getPermission())
-				.antMatchers(HttpMethod.DELETE, "/api/v1/management/**")
-					.hasAuthority(COURSE_WRITE.getPermission())
-				.antMatchers(HttpMethod.GET, "/api/v1/management/**")
-					.hasAnyRole(ADMIN.name(), TRAINEE.name())
+				.antMatchers("/", "index", "/css/*", "/js/*").permitAll()
+				.antMatchers(HttpMethod.GET, "/api/v1/management/**").hasAnyRole(
+						ADMIN.name(),
+						TRAINEE.name()
+				)
+				.antMatchers(HttpMethod.POST, "/api/v1/management/**").hasAnyAuthority(
+						"course:write",
+						"student:write"
+				)
+				.antMatchers("/api/v1/**").hasRole(USER.name())
 				.anyRequest()
-					.authenticated()
-				.and()
-				.formLogin()
-					.loginPage("/login")
-					.permitAll()
-					.defaultSuccessUrl("/courses", true)
-					.passwordParameter("password")
-					.usernameParameter("username")
-				.and()
-				.rememberMe()
-					.tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(1))
-					.key("secret")
-					.rememberMeParameter("remember-me")
-				.and()
-				.logout()
-					.logoutUrl("/logout")
-					.logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET"))
-					.clearAuthentication(true)
-					.invalidateHttpSession(true)
-					.deleteCookies("JSESSIONID", "remember-me")
-					.logoutSuccessUrl("/login");
+				.authenticated();
+	}
+
+	@Override
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+		auth.authenticationProvider(daoAuthenticationProvider());
+	}
+
+	@Bean
+	public DaoAuthenticationProvider daoAuthenticationProvider() {
+		DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+
+		provider.setPasswordEncoder(passwordEncoder);
+		provider.setUserDetailsService(applicationUserService);
+
+		return provider;
 	}
 }

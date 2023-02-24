@@ -28,11 +28,13 @@ public class StudentController {
 	}
 
 	@GetMapping
-	public ResponseEntity<Map<String, List<Student>>> getAllStudents() {
+	public ResponseEntity<Map<String, Object>> getAllStudents() {
 		return new ResponseEntity<>(
 				Map.of(
 						"students fetched!",
-						students
+						students,
+						"total",
+						students.size()
 				), HttpStatus.OK);
 	}
 

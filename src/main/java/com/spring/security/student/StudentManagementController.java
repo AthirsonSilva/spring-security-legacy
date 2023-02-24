@@ -15,7 +15,7 @@ public class StudentManagementController {
 	);
 
 	@GetMapping
-	@PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TRAINEE')")
+	@PreAuthorize("hasAnyAuthority('user:read', 'course:read')")
 	public ResponseEntity<Map<String, List<Student>>> getAllStudents() {
 		return new ResponseEntity<>(Map.of(
 				"Students",
