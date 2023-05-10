@@ -1,11 +1,53 @@
 # spring-security-legacy
 Learning Spring Security for Spring Boot 2.x versions
 
-[## Requirements
+## Requirements
 
 - [Java 8](https://adoptium.net/)
 - [Maven](https://maven.apache.org/)
 - [Gradle](https://gradle.org/)
+
+## Architecture Layers
+
+#### PRESENTATION LAYER
+
+This layer is at the top of the architecture. This tier is responsible for:
+
+✔️ Performing authentication.
+
+✔️ Converting JSON data into an object (and vice versa).
+
+✔️ Handling HTTP requests.
+
+✔️ Transfering authentication to the business layer.
+
+#### BUSINESS LAYER
+
+The business layer is responsible for:
+
+✔️ Performing validation.
+
+✔️ Performing authorization.
+
+✔️ Handling the business logic and rules.
+
+#### PERSISTENCE LAYER
+
+This layer is responsible for:
+
+✔️ Containing storage logic.
+
+✔️ Fetching objects and translating them into database rows (and vice versa).
+
+#### DATABASE LAYER
+
+This layer is simply the actual database that is responsible for:
+
+✔️ Performing database operations (mainly CRUD operations).
+
+## Software structure
+
+![image](https://github.com/AthirsonSilva/blog-api/assets/84593887/046588ab-6449-43f3-b68b-ed5c580146d9)
 
 ## Getting Started
 
@@ -28,4 +70,3 @@ Learning Spring Security for Spring Boot 2.x versions
 ## Usage
 
 - You will also need the database installed on your machine and set the connection vars on the application.properties or application.yml
-](https://kotlinlang.org/)
