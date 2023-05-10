@@ -1,9 +1,9 @@
 # spring-security-legacy
 Learning Spring Security for Spring Boot 2.x versions
 
-## Requirements
+[## Requirements
 
-- [Java 17](https://adoptium.net/)
+- [Java 8](https://adoptium.net/)
 - [Maven](https://maven.apache.org/)
 - [Gradle](https://gradle.org/)
 
@@ -28,3 +28,4 @@ Learning Spring Security for Spring Boot 2.x versions
 ## Usage
 
 - You will also need the database installed on your machine and set the connection vars on the application.properties or application.yml
+](https://kotlinlang.org/)
